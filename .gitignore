@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+
+# Environment files
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Build
+dist/
+build/
+
+# Large data
+data/raw/
+data/processed/
+
+# Model files
+*.pt
+*.pth
+*.onnx
+*.onnx_data
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
