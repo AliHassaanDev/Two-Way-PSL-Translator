@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   AlertCircle,
@@ -47,6 +48,13 @@ const recentActivity = [
 ];
 
 const recentTranslations = ["السلام علیکم", "آپ کیسے ہیں؟", "شکریہ", "براہ کرم مدد کریں"];
+
+function ModalPortal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -724,9 +732,9 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
     if (cameraOn && videoRef.current && streamRef.current) {
       if (videoRef.current.srcObject !== streamRef.current) {
         videoRef.current.srcObject = streamRef.current;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(console.error);
-        };
+        const playVideo = () => videoRef.current?.play().catch(console.error);
+        videoRef.current.onloadedmetadata = playVideo;
+        playVideo();
       }
     }
   }, [cameraOn]);
@@ -840,6 +848,21 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
 
     return () => clearInterval(interval);
   }, [cameraOn]);
+
+  // Lock body scroll when modals or fullscreen are active
+  useEffect(() => {
+    if (isCameraFullscreen || showInfoModal) {
+      document.body.style.overflow = "hidden";
+      if (isCameraFullscreen) document.body.classList.add("has-fullscreen");
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.classList.remove("has-fullscreen");
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.classList.remove("has-fullscreen");
+    };
+  }, [isCameraFullscreen, showInfoModal]);
 
   // Handle Video / Image File Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1029,15 +1052,7 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
                     <span>Latency: {metrics.latency}ms</span>
                   </div>
 
-                  {/* Current Active Sign Detected Notification */}
-                  {currentDetection && (
-                    <div className="live-sign-detected-card">
-                      <div className="detected-label">Detected PSL Sign:</div>
-                      <div className="detected-value">
-                        <strong dir="rtl">{currentDetection.urdu}</strong> ({currentDetection.gloss})
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               ) : (
                 <div className="camera-off">
@@ -1102,38 +1117,62 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
             </div>
           )}
 
-          {/* Interactive PSL Gesture Trigger Palette */}
-          <div className="gesture-palette-panel">
-            <div className="palette-header">
-              <span className="palette-title">
-                <Hand size={14} /> Interactive PSL Gesture Palette (Test Recognition)
-              </span>
-              <span className="palette-subtitle">Click any sign to simulate real landmark detection:</span>
-            </div>
-            <div className="palette-grid">
-              {supportedTokens.map((tok) => (
-                <button
-                  key={tok.id}
-                  className={`gesture-trigger-chip ${currentDetection?.id === tok.id ? "active" : ""}`}
-                  onClick={() => addTokenToBuffer(tok)}
-                >
-                  <span className="tok-urdu" dir="rtl">{tok.urdu}</span>
-                  <span className="tok-gloss">{tok.gloss}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Right Column: Translation Output & Buffer */}
         <div className="panel translation-panel">
-          <div className="panel-title-row">
-            <span className="panel-title">Recognized PSL Translation (اردو ترجمہ)</span>
-            {tokenBuffer.length > 0 && (
-              <button className="clear-btn" onClick={clearBuffer} title="Clear translation buffer">
-                <Trash2 size={13} /> Clear
-              </button>
+          {/* Live Prediction Card */}
+          <div className="live-prediction-card">
+            <div className="prediction-header">
+              <Sparkles size={14} /> Live Detection
+            </div>
+            {currentDetection ? (
+              <div className="prediction-content">
+                <div className="prediction-main">
+                  <strong dir="rtl" className="pred-urdu">{currentDetection.urdu}</strong>
+                  <span className="pred-gloss">{currentDetection.gloss}</span>
+                </div>
+                <div className="prediction-confidence">
+                  <span className="conf-value">{currentDetection.confidence}%</span>
+                  <span className="conf-label">Confidence</span>
+                </div>
+              </div>
+            ) : (
+              <div className="prediction-empty">
+                Waiting for sign...
+              </div>
             )}
+          </div>
+
+          {/* Sentence Strip (Token Buffer) */}
+          <div className="sentence-strip-section">
+            <div className="strip-header">
+              <span>Recognized Phrase:</span>
+              <div className="strip-actions">
+                {tokenBuffer.length > 0 && (
+                  <>
+                    <button className="small-text-btn" onClick={removeLastToken}>
+                      Undo Last
+                    </button>
+                    <button className="small-text-btn danger" onClick={clearBuffer}>
+                      Clear All
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="sentence-strip">
+              {tokenBuffer.length === 0 ? (
+                <span className="empty-strip-text">Start signing to build a sentence...</span>
+              ) : (
+                tokenBuffer.map((tok, idx) => (
+                  <span key={`${tok.id}-${idx}`} className="sentence-word">
+                    <span className="word-urdu" dir="rtl">{tok.urdu}</span>
+                    <span className="word-gloss">{tok.gloss}</span>
+                  </span>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Urdu Translation Output Box */}
@@ -1145,7 +1184,7 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
                 </div>
               ) : (
                 <span className="placeholder-text">
-                  Sign in front of the camera or click a sign from the palette above to build your sentence...
+                  Sign in front of the camera to build your sentence...
                 </span>
               )}
             </div>
@@ -1156,30 +1195,6 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
                 <span className="sub-label">English:</span> {fullEnglishText}
               </div>
             )}
-          </div>
-
-          {/* Token Accumulation Buffer Chips */}
-          <div className="token-buffer-section">
-            <div className="buffer-header">
-              <span>Accumulated Token Buffer ({tokenBuffer.length}):</span>
-              {tokenBuffer.length > 0 && (
-                <button className="small-text-btn" onClick={removeLastToken}>
-                  Undo Last
-                </button>
-              )}
-            </div>
-            <div className="buffer-chips-row">
-              {tokenBuffer.length === 0 ? (
-                <span className="empty-buffer-text">Buffer empty</span>
-              ) : (
-                tokenBuffer.map((tok, idx) => (
-                  <span key={`${tok.id}-${idx}`} className="buffer-chip">
-                    <span className="chip-urdu" dir="rtl">{tok.urdu}</span>
-                    <span className="chip-gloss">{tok.gloss}</span>
-                  </span>
-                ))
-              )}
-            </div>
           </div>
 
           {/* Translation Action Buttons */}
@@ -1215,42 +1230,44 @@ function PSLToUrdu({ cameraOn, setCameraOn }: { cameraOn: boolean; setCameraOn: 
 
       {/* Information Modal */}
       {showInfoModal && (
-        <div className="modal-overlay" onClick={() => setShowInfoModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Pakistani Sign Language (PSL) Recognition System</h3>
-              <button className="close-btn" onClick={() => setShowInfoModal(false)}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <p>
-                <strong>SignBridge PK</strong> utilizes client-side landmark extraction and sequence recognition to identify dynamic PSL words and alphabet fingerspelling in real time without transmitting raw video to remote servers.
-              </p>
-              <div className="info-feature-list">
-                <div className="info-feature-item">
-                  <div className="feature-icon teal"><Eye size={16} /></div>
-                  <div>
-                    <strong>21-Point Landmark Tracking</strong>
-                    <p>Tracks hand joint geometry, angles, and spatial trajectories to recognize gestures invariant to lighting.</p>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowInfoModal(false)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Pakistani Sign Language (PSL) Recognition System</h3>
+                <button className="close-btn" onClick={() => setShowInfoModal(false)}><X size={18} /></button>
+              </div>
+              <div className="modal-body">
+                <p>
+                  <strong>SignBridge PK</strong> utilizes client-side landmark extraction and sequence recognition to identify dynamic PSL words and alphabet fingerspelling in real time without transmitting raw video to remote servers.
+                </p>
+                <div className="info-feature-list">
+                  <div className="info-feature-item">
+                    <div className="feature-icon teal"><Eye size={16} /></div>
+                    <div>
+                      <strong>21-Point Landmark Tracking</strong>
+                      <p>Tracks hand joint geometry, angles, and spatial trajectories to recognize gestures invariant to lighting.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="info-feature-item">
-                  <div className="feature-icon violet"><Clock3 size={16} /></div>
-                  <div>
-                    <strong>Temporal Stabilization & Debouncing</strong>
-                    <p>Filters out accidental transitions and commits recognized signs cleanly into the phrase buffer.</p>
+                  <div className="info-feature-item">
+                    <div className="feature-icon violet"><Clock3 size={16} /></div>
+                    <div>
+                      <strong>Temporal Stabilization & Debouncing</strong>
+                      <p>Filters out accidental transitions and commits recognized signs cleanly into the phrase buffer.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="info-feature-item">
-                  <div className="feature-icon teal"><Volume2 size={16} /></div>
-                  <div>
-                    <strong>Instant Urdu & English Speech Output</strong>
-                    <p>Converts recognized PSL tokens into readable Urdu text and spoken audio for hearing communicators.</p>
+                  <div className="info-feature-item">
+                    <div className="feature-icon teal"><Volume2 size={16} /></div>
+                    <div>
+                      <strong>Instant Urdu & English Speech Output</strong>
+                      <p>Converts recognized PSL tokens into readable Urdu text and spoken audio for hearing communicators.</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </>
   );
@@ -1320,11 +1337,14 @@ function UrduToPSL({ text, setText, autoPlay, setAutoPlay, isPlaying, setIsPlayi
   useEffect(() => {
     if (isFullscreen || showInfoModal) {
       document.body.style.overflow = "hidden";
+      if (isFullscreen) document.body.classList.add("has-fullscreen");
     } else {
       document.body.style.overflow = "unset";
+      document.body.classList.remove("has-fullscreen");
     }
     return () => {
       document.body.style.overflow = "unset";
+      document.body.classList.remove("has-fullscreen");
     };
   }, [isFullscreen, showInfoModal]);
 
@@ -1686,42 +1706,44 @@ function UrduToPSL({ text, setText, autoPlay, setAutoPlay, isPlaying, setIsPlayi
 
       {/* How it works info modal */}
       {showInfoModal && (
-        <div className="modal-overlay" onClick={() => setShowInfoModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>About Pakistani Sign Language (PSL) Translation</h3>
-              <button className="close-btn" onClick={() => setShowInfoModal(false)}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <p>
-                <strong>Pakistani Sign Language (PSL)</strong> is the indigenous visual-spatial language used by the Deaf community across Pakistan.
-              </p>
-              <div className="info-feature-list">
-                <div className="info-feature-item">
-                  <div className="feature-icon violet"><Sparkles size={16} /></div>
-                  <div>
-                    <strong>Grammar & Spatial Mapping</strong>
-                    <p>PSL follows natural visual-spatial syntax, utilizing head tilts, body orientation, and two-handed spatial movement.</p>
+        <ModalPortal>
+          <div className="modal-overlay" onClick={() => setShowInfoModal(false)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>About Pakistani Sign Language (PSL) Translation</h3>
+                <button className="close-btn" onClick={() => setShowInfoModal(false)}><X size={18} /></button>
+              </div>
+              <div className="modal-body">
+                <p>
+                  <strong>Pakistani Sign Language (PSL)</strong> is the indigenous visual-spatial language used by the Deaf community across Pakistan.
+                </p>
+                <div className="info-feature-list">
+                  <div className="info-feature-item">
+                    <div className="feature-icon violet"><Sparkles size={16} /></div>
+                    <div>
+                      <strong>Grammar & Spatial Mapping</strong>
+                      <p>PSL follows natural visual-spatial syntax, utilizing head tilts, body orientation, and two-handed spatial movement.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="info-feature-item">
-                  <div className="feature-icon teal"><Hand size={16} /></div>
-                  <div>
-                    <strong>Finger-Spelling Fallback</strong>
-                    <p>Proper nouns, names, and rare words without a direct sign gloss are finger-spelled using the standard PSL Urdu alphabet manual gestures.</p>
+                  <div className="info-feature-item">
+                    <div className="feature-icon teal"><Hand size={16} /></div>
+                    <div>
+                      <strong>Finger-Spelling Fallback</strong>
+                      <p>Proper nouns, names, and rare words without a direct sign gloss are finger-spelled using the standard PSL Urdu alphabet manual gestures.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="info-feature-item">
-                  <div className="feature-icon violet"><Volume2 size={16} /></div>
-                  <div>
-                    <strong>Speech & Audio Synchronization</strong>
-                    <p>Audio pronunciation and visual gesture playback work in real-time to facilitate two-way inclusive communication.</p>
+                  <div className="info-feature-item">
+                    <div className="feature-icon violet"><Volume2 size={16} /></div>
+                    <div>
+                      <strong>Speech & Audio Synchronization</strong>
+                      <p>Audio pronunciation and visual gesture playback work in real-time to facilitate two-way inclusive communication.</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </>
   );
