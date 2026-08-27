@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
       model: "urdutopsl",
       data: inferenceResult,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[POST /api/translate error]:", error);
     return NextResponse.json(
-      { error: "Internal translation inference error", details: error?.message },
+      { error: "Internal translation inference error", details: (error as Error)?.message },
       { status: 500 }
     );
   }

@@ -110,10 +110,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ id: "none" });
 
-  } catch (error: any) {
-    console.error("[recognize API error]:", error.message);
+  } catch (error: unknown) {
+    console.error("[recognize API error]:", (error as Error).message);
     // Return gracefully instead of hard 500 so UI continuous loop stays intact
-    return NextResponse.json({ id: "none", error: error.message }, { status: 200 });
+    return NextResponse.json({ id: "none", error: (error as Error).message }, { status: 200 });
   }
 }
 

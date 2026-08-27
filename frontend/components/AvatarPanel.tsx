@@ -47,6 +47,16 @@ export default function AvatarPanel({
     }
   }, [currentSignIndex]);
 
+  // Handle Fullscreen Scroll Lock
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.classList.add("body-no-scroll");
+    } else {
+      document.body.classList.remove("body-no-scroll");
+    }
+    return () => document.body.classList.remove("body-no-scroll");
+  }, [isFullscreen]);
+
   return (
     <div className={`panel avatar-panel ${isFullscreen ? "fullscreen-stage" : ""}`}>
       {/* Panel Title & Status Header */}

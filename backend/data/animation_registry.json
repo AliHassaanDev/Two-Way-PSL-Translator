@@ -1,0 +1,6 @@
+{
+  "HELLO": {"asset": "hello.glb", "type": "word", "duration_ms": 1500, "loop": false},
+  "DOCTOR": {"asset": "doctor.glb", "type": "word", "duration_ms": 2000, "loop": false},
+  "A": {"asset": "letter_a.glb", "type": "fingerspelling", "duration_ms": 1000, "loop": false},
+  "B": {"asset": "letter_b.glb", "type": "fingerspelling", "duration_ms": 1000, "loop": false}
+}

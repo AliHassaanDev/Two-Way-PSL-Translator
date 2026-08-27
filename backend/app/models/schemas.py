@@ -26,3 +26,19 @@ class UrduToPSLResponse(BaseModel):
     gloss_sequence: List[str]
     total_duration_ms: int
     model_confidence: float
+
+class ASRResponse(BaseModel):
+    transcript: str
+    confidence: float
+    language: str
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., description="Text to synthesize into speech")
+    language: str = Field("ur", description="Language code, e.g., ur or en")
+
+class AnimationMetadataResponse(BaseModel):
+    token: str
+    asset_url: str
+    type: str
+    duration_ms: int
+    loop: bool

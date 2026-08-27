@@ -24,7 +24,7 @@ export interface BackendTokenResponse {
   duration_ms: number;
   confidence: number;
   description: string;
-  avatar_pose?: any;
+  avatar_pose?: import("./psl-dictionary").PSLSign["avatarPose"];
 }
 
 export interface BackendTranslateResponse {
@@ -123,7 +123,7 @@ export class SignBridgeAPI {
               urdu: t.urdu,
               gloss: t.gloss,
               english: t.english,
-              category: t.category as any,
+              category: t.category as "greeting" | "question" | "emergency" | "daily" | "alphabet" | "number",
               duration: t.duration_ms,
               description: t.description,
               avatarPose: t.avatar_pose || {

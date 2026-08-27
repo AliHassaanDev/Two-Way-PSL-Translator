@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Play, Hand, BookOpen, Layers } from "lucide-react";
+import { Sparkles, Play } from "lucide-react";
 
 export interface DemoSample {
   id: string;

@@ -3539,3 +3539,32 @@ body.has-fullscreen .workspace-card {
     transform: translateY(0) scale(1);
   }
 }
+
+
+
+.body-no-scroll {
+  overflow: hidden !important;
+}
+
+.body-no-scroll .site-header,
+.body-no-scroll .workspace-tabs-row {
+  display: none !important;
+}
+
+/* Stacking context buster: remove properties from parents that break position: fixed */
+.body-no-scroll .site-shell,
+.body-no-scroll section,
+.body-no-scroll .landing-page,
+.body-no-scroll .workspace-container,
+.body-no-scroll .workspace-card,
+.body-no-scroll .tab-panel-fade,
+.body-no-scroll .psl-layout,
+.body-no-scroll .urdu-layout {
+  transform: none !important;
+  animation: none !important;
+  perspective: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  position: static !important;
+  z-index: auto !important;
+}

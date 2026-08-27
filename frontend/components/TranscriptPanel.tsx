@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Volume2, VolumeX, Copy, Check, RotateCcw, Trash2 } from "lucide-react";
+import { Volume2, VolumeX, Copy, Check } from "lucide-react";
 import { PredictionToken } from "./PredictionPanel";
 
 export interface TranscriptPanelProps {

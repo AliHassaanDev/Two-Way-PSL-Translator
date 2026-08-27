@@ -1,7 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.models.schemas import UrduToPSLRequest, UrduToPSLResponse
-from app.services.urdutopsl_service import urdu_to_psl_service
+from app.api import translation, speech, animations
 
 app = FastAPI(
     title="SignBridge PK API",
@@ -18,6 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Routers
+app.include_router(translation.router)
+app.include_router(speech.router)
+app.include_router(animations.router)
+
 @app.get("/")
 def root():
     return {
@@ -33,27 +37,6 @@ def root():
         }
     }
 
-@app.post("/api/translate/urdu-to-psl", response_model=UrduToPSLResponse)
-def translate_urdu_to_psl(payload: UrduToPSLRequest):
-    """
-    Translates input Urdu text into Pakistani Sign Language gloss tokens and 3D avatar animation poses.
-    Uses the urdutopsl model architecture with word-level sign mapping and fingerspelling fallback.
-    """
-    try:
-        response = urdu_to_psl_service.translate(payload)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/model-info")
-def model_info():
-    return {
-        "model_name": "urdutopsl",
-        "supported_datasets": ["DynamicWordLevelPakistanSignLanguage", "UAlpha40"],
-        "architecture": "Hybrid Sequence Embedding + PSL Fingerspelling Fallback",
-        "exported_format": "ONNX / PyTorch"
-    }
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

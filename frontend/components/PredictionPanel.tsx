@@ -19,7 +19,6 @@ export default function PredictionPanel({
   currentDetection: PredictionToken | null;
 }) {
   const isConfident = currentDetection && currentDetection.confidence >= 0.75;
-  const isUncertain = currentDetection && currentDetection.confidence < 0.75;
 
   return (
     <div className="live-prediction-card">

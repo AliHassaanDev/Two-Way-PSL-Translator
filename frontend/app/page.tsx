@@ -32,7 +32,10 @@ import AvatarPanel from "../components/AvatarPanel";
 
 function ModalPortal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
   if (!mounted) return null;
   return createPortal(children, document.body);
 }
@@ -68,6 +71,7 @@ export default function Page() {
             <button
               className={`workspace-tab-btn tab-urdu ${activeTab === "urdu-to-psl" ? "active" : ""}`}
               onClick={() => setActiveTab("urdu-to-psl")}
+              role="tab"
               aria-selected={activeTab === "urdu-to-psl"}
             >
               <div className="tab-medallion violet">
@@ -82,6 +86,7 @@ export default function Page() {
             <button
               className={`workspace-tab-btn tab-psl ${activeTab === "psl-to-urdu" ? "active" : ""}`}
               onClick={() => setActiveTab("psl-to-urdu")}
+              role="tab"
               aria-selected={activeTab === "psl-to-urdu"}
             >
               <div className="tab-medallion teal">
@@ -394,7 +399,7 @@ function PSLToUrdu({
   );
 
   // Handle detection from Camera, Video Upload, or Demo Mode
-  const handleRawDetection = (rawToken: any) => {
+  const handleRawDetection = (rawToken: { id: string; urdu?: string; english?: string; gloss?: string; confidence?: number | string; type?: string; source?: string }) => {
     if (!rawToken || rawToken.id === "none") return;
 
     const token: PredictionToken = {
@@ -576,8 +581,10 @@ function UrduToPSL({
   // Initial translation if text provided
   useEffect(() => {
     if (text) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       handleTranslate(text);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Playback timer loop
@@ -596,14 +603,15 @@ function UrduToPSL({
     }, duration);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, currentSignIndex, signs, speed]);
 
   // Voice recognition (Speech to Text in Urdu) FR-10 / FR-11
   const toggleVoiceInput = () => {
     if (typeof window === "undefined") return;
     const SpeechRecognition =
-      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).SpeechRecognition ||
-      (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+      (window as unknown as { SpeechRecognition?: new () => unknown; webkitSpeechRecognition?: new () => unknown }).SpeechRecognition ||
+      (window as unknown as { SpeechRecognition?: new () => unknown; webkitSpeechRecognition?: new () => unknown }).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
@@ -616,13 +624,14 @@ function UrduToPSL({
     }
 
     try {
-      const recognition = new SpeechRecognition();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const recognition = new SpeechRecognition() as any;
       recognition.lang = "ur-PK";
       recognition.continuous = false;
       recognition.interimResults = false;
 
       recognition.onstart = () => setIsListening(true);
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: { results: { [key: number]: { [key: number]: { transcript: string } } } }) => {
         const transcript = event.results[0][0].transcript;
         setText(transcript);
         handleTranslate(transcript);

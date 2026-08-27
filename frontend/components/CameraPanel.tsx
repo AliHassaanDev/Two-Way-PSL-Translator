@@ -21,7 +21,7 @@ export interface CameraPanelProps {
   activeMode: "camera" | "upload" | "demo";
   setActiveMode: (mode: "camera" | "upload" | "demo") => void;
   metrics: { fps: number; confidence: number; latency: number };
-  onDetection: (token: any) => void;
+  onDetection: (token: { id: string; urdu?: string; english?: string; gloss?: string; confidence?: number | string; type?: string; source?: string }) => void;
   isCameraFullscreen: boolean;
   setIsCameraFullscreen: (v: boolean) => void;
 }
@@ -38,7 +38,7 @@ export default function CameraPanel({
 }: CameraPanelProps) {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [uploadedMedia, setUploadedMedia] = useState<{ url: string; type: "video" | "image"; name: string } | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,9 +62,10 @@ export default function CameraPanel({
 
       streamRef.current = stream;
       setCameraOn(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Camera access error:", err);
-      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      const error = err as Error;
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
         setCameraError("Camera permission was denied. Please allow camera access in browser settings.");
       } else {
         setCameraError("Unable to access camera. Please check if another application is using it.");
@@ -93,6 +94,7 @@ export default function CameraPanel({
     return () => {
       stopCamera();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Attach stream to video element when camera is active
@@ -171,6 +173,16 @@ export default function CameraPanel({
     return () => clearInterval(interval);
   }, [cameraOn, onDetection]);
 
+  // Handle Fullscreen Scroll Lock
+  useEffect(() => {
+    if (isCameraFullscreen) {
+      document.body.classList.add("body-no-scroll");
+    } else {
+      document.body.classList.remove("body-no-scroll");
+    }
+    return () => document.body.classList.remove("body-no-scroll");
+  }, [isCameraFullscreen]);
+
   // Handle Video / Image File Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,7 +191,7 @@ export default function CameraPanel({
     const fileType = file.type.startsWith("video") ? "video" : "image";
     const objectUrl = URL.createObjectURL(file);
     setUploadedMedia({ url: objectUrl, type: fileType, name: file.name });
-    setIsProcessing(true);
+
 
     try {
       let base64Image = "";
@@ -217,8 +229,6 @@ export default function CameraPanel({
       }
     } catch (err) {
       console.error("File upload recognition error:", err);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -328,7 +338,10 @@ export default function CameraPanel({
                 {uploadedMedia.type === "video" ? (
                   <video src={uploadedMedia.url} controls autoPlay loop className="preview-video" />
                 ) : (
-                  <img src={uploadedMedia.url} alt="Uploaded gesture" className="preview-image" />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={uploadedMedia.url} alt="Uploaded gesture" className="preview-image" />
+                  </>
                 )}
                 <div className="upload-overlay-actions">
                   <span className="file-name-tag">{uploadedMedia.name}</span>
